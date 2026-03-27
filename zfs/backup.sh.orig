@@ -6,9 +6,9 @@
 #   Subsequent runs:         ./zfs-sync.sh
 #
 # Configuration — edit these:
-SRC_DATASET="tank/appdata"
-DST_HOST="root@borgprox.local"
-DST_DATASET="ssdtank/appdata"
+SRC_DATASET="sourcepool/data/vm-100-disk-0"
+DST_HOST="root@192.168.1.100"
+DST_DATASET="destpool/data/vm-100-disk-0"
 
 SNAP_PREV="${SRC_DATASET}@sync-prev"
 SNAP_NEW="${SRC_DATASET}@sync-new"
@@ -52,8 +52,8 @@ incremental_send() {
         || die "${SNAP_PREV} not found on source — run with --full first"
 
     # Verify base snapshot exists on destination
-#    ssh "${DST_HOST}" zfs list -t snapshot "${DST_DATASET}@sync-prev" > /dev/null 2>&1 \
-#        || die "@sync-prev not found on destination — run with --full first"
+    ssh "${DST_HOST}" zfs list -t snapshot "${DST_DATASET}@sync-prev" > /dev/null 2>&1 \
+        || die "@sync-prev not found on destination — run with --full first"
 
     # Take new snapshot
     zfs snapshot "${SNAP_NEW}" \
@@ -66,7 +66,7 @@ incremental_send() {
         || { zfs destroy "${SNAP_NEW}"; die "zfs send/receive failed — rolled back, @sync-prev intact"; }
 
     # Stamp the received snapshot on the destination with today's date
-    TODAY=$(date +%Y-%m-%d-%H-%M-%S)
+    TODAY=$(date +%Y-%m-%d)
     log "Renaming @sync-new to @${TODAY} on destination ..."
     ssh "${DST_HOST}" zfs rename "${DST_DATASET}@sync-new" \
                                  "${DST_DATASET}@${TODAY}" \
