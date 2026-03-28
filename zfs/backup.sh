@@ -32,11 +32,11 @@ die()  { echo -e "${RED}[$(date +%H:%M:%S)] ERROR:${NC} $*" >&2; exit 1; }
 full_send() {
     log "Starting full send of ${SRC_DATASET}"
 
-    zfs snapshot "${SNAP_PREV}" \
+    zfs snapshot -r "${SNAP_PREV}" \
         || die "Failed to create snapshot ${SNAP_PREV}"
 
     log "Sending full stream to ${DST_HOST}:${DST_DATASET} ..."
-    zfs send -cv "${SNAP_PREV}" \
+    zfs send -Rcv "${SNAP_PREV}" \
         | ssh "${DST_HOST}" zfs receive "${DST_DATASET}" \
         || die "zfs send/receive failed"
 
@@ -64,27 +64,27 @@ incremental_send() {
 #        || die "@sync-prev not found on destination — run with --full first"
 
     # Take new snapshot
-    zfs snapshot "${SNAP_NEW}" \
+    zfs snapshot -r "${SNAP_NEW}" \
         || die "Failed to create snapshot ${SNAP_NEW}"
 
     # Send incremental
     log "Sending incremental stream to ${DST_HOST}:${DST_DATASET} ..."
-    zfs send -cv -i "${SNAP_PREV}" "${SNAP_NEW}" \
+    zfs send -Rcv -i "${SNAP_PREV}" "${SNAP_NEW}" \
         | ssh "${DST_HOST}" zfs receive -F "${DST_DATASET}" \
-        || { zfs destroy "${SNAP_NEW}"; die "zfs send/receive failed — rolled back, @sync-prev intact"; }
+        || { zfs destroy -r "${SNAP_NEW}"; die "zfs send/receive failed — rolled back, @sync-prev intact"; }
 
     # Stamp the received snapshot on the destination with today's date
     TODAY=$(date +%Y-%m-%d-%H-%M-%S)
     log "Renaming @sync-new to @${TODAY} on destination ..."
-    ssh "${DST_HOST}" zfs rename "${DST_DATASET}@sync-new" \
-                                 "${DST_DATASET}@${TODAY}" \
+    ssh "${DST_HOST}" zfs rename -r "${DST_DATASET}@sync-new" \
+                                    "${DST_DATASET}@${TODAY}" \
         || warn "Rename on destination failed — snapshot is safe but name is still @sync-new"
 
     # Rotate on source — only now that receive and rename succeeded
     log "Rotating snapshots on source ..."
-    zfs destroy "${SNAP_PREV}" \
+    zfs destroy -r "${SNAP_PREV}" \
         || warn "Failed to destroy old @sync-prev — continuing anyway"
-    zfs rename "${SNAP_NEW}" "${SNAP_PREV}" \
+    zfs rename -r "${SNAP_NEW}" "${SNAP_PREV}" \
         || die "Failed to rename @sync-new to @sync-prev — manual intervention needed"
 
     log "Incremental send complete."
