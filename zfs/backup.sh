@@ -2,13 +2,21 @@
 # zfs-sync.sh — incremental ZFS send/receive between two hosts
 #
 # Usage:
-#   First run (full send):   ./zfs-sync.sh --full
-#   Subsequent runs:         ./zfs-sync.sh
+#   First run (full send):   ./zfs-sync.sh <dataset> --full
+#   Subsequent runs:         ./zfs-sync.sh <dataset>
+#
+# Example: ./zfs-sync.sh appdata
 #
 # Configuration — edit these:
-SRC_DATASET="tank/appdata"
+SRC_POOL="tank"
 DST_HOST="root@borgprox.local"
-DST_DATASET="ssdtank/appdata"
+DST_POOL="ssdtank"
+
+DATASET="${1:-}"
+[ -z "${DATASET}" ] && { echo "Usage: $0 <dataset> [--full]" >&2; exit 1; }
+
+SRC_DATASET="${SRC_POOL}/${DATASET}"
+DST_DATASET="${DST_POOL}/${DATASET}"
 
 SNAP_PREV="${SRC_DATASET}@sync-prev"
 SNAP_NEW="${SRC_DATASET}@sync-new"
@@ -84,8 +92,8 @@ incremental_send() {
 
 # ─── Entry point ──────────────────────────────────────────────────────────────
 
-case "${1:-}" in
+case "${2:-}" in
     --full) full_send ;;
     "")     incremental_send ;;
-    *)      die "Unknown argument: $1. Use --full or no argument." ;;
+    *)      die "Unknown argument: $2. Use --full or no argument." ;;
 esac

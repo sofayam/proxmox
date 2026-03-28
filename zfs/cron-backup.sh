@@ -4,6 +4,7 @@
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 DST_HOST="root@borgprox.local"
 WOL_SCRIPT="${SCRIPT_DIR}/../wol/wol.py"
+DATASETS=(appdata vmstore)
 
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; NC='\033[0m'
 log()  { echo -e "${GREEN}[$(date +%H:%M:%S)]${NC} $*"; }
@@ -39,9 +40,12 @@ else
     log "borgprox is up (${ELAPSED}s)"
 fi
 
-# ─── Run backup ───────────────────────────────────────────────────────────────
+# ─── Run backups ──────────────────────────────────────────────────────────────
 
-"${SCRIPT_DIR}/backup.sh" || die "Backup failed"
+for DATASET in "${DATASETS[@]}"; do
+    log "Backing up ${DATASET} ..."
+    "${SCRIPT_DIR}/backup.sh" "${DATASET}" || die "Backup of ${DATASET} failed"
+done
 
 # ─── Shut down if we woke it ──────────────────────────────────────────────────
 
