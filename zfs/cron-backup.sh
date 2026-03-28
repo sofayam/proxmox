@@ -11,7 +11,7 @@ warn() { echo -e "${YELLOW}[$(date +%H:%M:%S)] WARN:${NC} $*"; }
 die()  { echo -e "${RED}[$(date +%H:%M:%S)] ERROR:${NC} $*" >&2; exit 1; }
 
 is_up() {
-    ssh -o ConnectTimeout=5 -o BatchMode=yes "${DST_HOST}" exit 2>/dev/null
+    ping -c 1 -W 2 borgprox.local >/dev/null 2>&1
 }
 
 # ─── Check if already running ─────────────────────────────────────────────────
