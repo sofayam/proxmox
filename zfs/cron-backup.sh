@@ -30,8 +30,8 @@ else
     TIMEOUT=120
     ELAPSED=0
     while ! is_up; do
-        sleep 5
-        ELAPSED=$((ELAPSED + 5))
+        sleep 10
+        ELAPSED=$((ELAPSED + 10))
         if [ "${ELAPSED}" -ge "${TIMEOUT}" ]; then
             die "borgprox did not come up after ${TIMEOUT}s"
         fi
@@ -42,10 +42,9 @@ fi
 
 # ─── Run backups ──────────────────────────────────────────────────────────────
 
-for DATASET in "${DATASETS[@]}"; do
-    log "Backing up ${DATASET} ..."
-    "${SCRIPT_DIR}/backup.sh" "${DATASET}" || die "Backup of ${DATASET} failed"
-done
+# TBD call syncoid here
+syncoid --no-privilege-elevation --recursive tank/appdata borgprox.local:ssdtank/appdata >> /var/log/syncoid.log 2>&1
+syncoid --no-privilege-elevation --recursive tank/vmstore borgprox.local:ssdtank/vmstore >> /var/log/syncoid.log 2>&1
 
 # ─── Shut down if we woke it ──────────────────────────────────────────────────
 
